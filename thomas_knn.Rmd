@@ -1,0 +1,156 @@
+---
+title: "thomas"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## KNN
+Yaldo and Shamir (2017) wrote a paper titled 'Computational Estimation of Football Player Wages', evaluating the best machine learning method for predicting football player wages. They used data and variables that are quite similar to the ones we have available, and therefore we took a look at the methods they used. The method that performs the best throughout is k-Nearest Neighbor (k-NN), which predicts based on 'neighbors' that are very similar to it. Therefore, we decided to attempt to run this machine learning method. 
+
+## Load Packages
+We started by loading the appropriate packages & the data, as well as converting the character variables to integers. This stored them as random integers (ie, the position forward was assigned a 4). However, this doesn't method for the k-NN method, as it matches to neighbors based on similar characteristics. 
+```{r}
+library(FNN)
+library(MASS)
+library(dplyr) 
+library(data.table)
+DT = fread("https://www.dropbox.com/s/5rr2ysw6tjcnbpj/train.csv?dl=1")
+final_test = fread("https://www.dropbox.com/s/395thqjfxf7k4wi/test.csv?dl=1")
+
+DT$preferred_foot <- as.integer(as.factor(DT$preferred_foot))
+DT$work_rate <- as.integer(as.factor(DT$work_rate))
+DT$team_position <- as.integer(as.factor(DT$team_position))
+final_test$preferred_foot <- as.integer(as.factor(final_test$preferred_foot))
+final_test$work_rate <- as.integer(as.factor(final_test$work_rate))
+final_test$team_position <- as.integer(as.factor(final_test$team_position))
+
+```
+
+## Make datasets
+```{r}
+set.seed(141)
+train_ind <- sample(1:nrow(DT), 0.8*nrow(DT))
+
+train_football <- DT[train_ind,]
+test_football <- DT[-train_ind,]
+```
+
+#Split
+```{r}
+X_trn_boston = train_football[, -c("player_ID","wage_eur")]
+X_tst_boston = test_football[, -c("player_ID","wage_eur")]
+y_trn_boston = train_football$wage_eur
+y_tst_boston = test_football$wage_eur
+
+```
+
+# Try out some predictions
+```{r}
+pred_001 = knn.reg(train = X_trn_boston, test = X_tst_boston, y = y_trn_boston, k = 1)
+pred_005 = knn.reg(train = X_trn_boston, test = X_tst_boston, y = y_trn_boston, k = 5)
+pred_010 = knn.reg(train = X_trn_boston, test = X_tst_boston, y = y_trn_boston, k = 10)
+pred_050 = knn.reg(train = X_trn_boston, test = X_tst_boston, y = y_trn_boston, k = 50)
+pred_100 = knn.reg(train = X_trn_boston, test = X_tst_boston, y = y_trn_boston, k = 100)
+pred_250 = knn.reg(train = X_trn_boston, test = X_tst_boston, y = y_trn_boston, k = 250)
+```
+
+# Define RMSE function
+```{r}
+rmse = function(actual, predicted) {
+  sqrt(mean((actual - predicted) ^ 2))
+}
+```
+
+# define helper function for getting knn.reg predictions
+```{r}
+make_knn_pred = function(k = 1, training, predicting) {
+  pred = FNN::knn.reg(train = training[, -c("player_ID","wage_eur")],
+                      test = predicting[, -c("player_ID","wage_eur")],
+                      y = training$wage_eur, k = k)$pred
+  act  = predicting$wage_eur
+  rmse(predicted = pred, actual = act)
+}
+
+```
+
+# Define values of K 
+We tried out a couple of values of k (the number of neighbors) to get an idea for which ballpark we should be looking. 
+```{r}
+# define values of k to evaluate
+k = c(1, 5, 10, 25, 50, 250)
+```
+
+# Get RMSE's
+With the code below we evaluated the RMSEs with the different values of K we tried before. 
+```{r}
+# get requested test RMSEs
+knn_tst_rmse = sapply(k, make_knn_pred, 
+                      training = train_football, 
+                      predicting = test_football)
+
+# determine "best" k
+best_k = k[which.min(knn_tst_rmse)]
+
+# find overfitting, underfitting, and "best"" k
+fit_status = ifelse(k < best_k, "Over", ifelse(k == best_k, "Best", "Under"))
+```
+
+# summarize results
+This chunk tells us that the 
+```{r}
+knn_results = data.frame(
+  k,
+  round(knn_tst_rmse, 2),
+  fit_status
+)
+colnames(knn_results) = c("k", "Test RMSE", "Fit?")
+
+# display results
+knitr::kable(knn_results, escape = FALSE, booktabs = TRUE)
+```
+
+#Loop over seeds
+What the next chunk does is repeatedly run k-nearest neighbor, using a random seed from between 1-2500. In total KNN 150 times, to find out what the most commonly chosen number of neighbors is. Please note that this does take a while, depending on your computational power. 
+```{r}
+best_k_list <- matrix(NA, nrow=2, ncol=1000)
+
+# define values of k to evaluate
+k = 1:25
+
+column_indicator = 1
+
+set.seed(1)
+for (seed_value in sample(1:2500,size=150)){
+  set.seed(seed_value)
+  train_ind <- sample(1:nrow(DT), 0.8*nrow(DT))
+  
+  train_football <- DT[train_ind,]
+  test_football <- DT[-train_ind,]
+  
+  knn_tst_rmse = sapply(k, make_knn_pred, 
+                      training = train_football, 
+                      predicting = test_football)
+
+# determine "best" k
+  best_k = k[which.min(knn_tst_rmse)]
+  best_k_list[1,column_indicator] = best_k
+  best_k_list[2,column_indicator] = seed_value
+  column_indicator = column_indicator + 1
+  
+print(round(100*(column_indicator / 150.0),2))
+}
+```
+The following histogram shows the amount of neighbors most commonly chosen. Each seed makes a different 80/20 split, and therefore the training data is different for each seed. This results in different amounts of nearest neighbors, and shows that the most chosen number of neighbors is 4. 
+```{r}
+hist(best_k_list[1,], breaks=1:25)
+summary(best_k_list[1,])
+##k=4
+```
+We then ran a regression using the complete training data, in order to train the data with as many observations as possible. We used a seed that had given as optimal number of neighbors k=4. We then predicted the wages using the test dataset, and submitted the result to kaggle.
+```{r}
+SUBMISSION STUFF & SEED USED
+```
+Unfortunately, this gave an score of 11857. This, although better than the OLS benchmark, performed worse than several other machine learning methods we used. Additionally, before fine-tuning (using the different seeds) we had attempted to run the KNN with 5 neighbors and 13. These numbers of neighbors were chosen based on preliminary indications using a smaller loop. These actually performed better than on the test dataset than our optimized model using 4 neighbors. This is a strikingly different result than the paper by AUTHORS. However, it may be in part due to differences in data as well as a different method for judging the effectiveness of the methods. 
