@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## KNN
 Yaldo and Shamir (2017) wrote a paper titled 'Computational Estimation of Football Player Wages', evaluating the best machine learning method for predicting football player wages. They used data and variables that are quite similar to the ones we have available, and therefore we took a look at the methods they used. The method that performs the best throughout is k-Nearest Neighbor (k-NN), which predicts based on 'neighbors' that are very similar to it. Therefore, we decided to attempt to run this machine learning method. 
 
-## Load Packages
+### Load Packages
 We started by loading the appropriate packages & the data, as well as converting the character variables to integers. This stored them as random integers (ie, the position forward was assigned a 4). However, this doesn't method for the k-NN method, as it matches to neighbors based on similar characteristics. 
 ```{r}
 library(FNN)
@@ -29,7 +29,7 @@ final_test$team_position <- as.integer(as.factor(final_test$team_position))
 
 ```
 
-## Make datasets
+### Make datasets
 ```{r}
 set.seed(141)
 train_ind <- sample(1:nrow(DT), 0.8*nrow(DT))
@@ -38,7 +38,7 @@ train_football <- DT[train_ind,]
 test_football <- DT[-train_ind,]
 ```
 
-#Split
+### Split
 ```{r}
 X_trn_boston = train_football[, -c("player_ID","wage_eur")]
 X_tst_boston = test_football[, -c("player_ID","wage_eur")]
@@ -47,7 +47,7 @@ y_tst_boston = test_football$wage_eur
 
 ```
 
-# Try out some predictions
+### Try out some predictions
 ```{r}
 pred_001 = knn.reg(train = X_trn_boston, test = X_tst_boston, y = y_trn_boston, k = 1)
 pred_005 = knn.reg(train = X_trn_boston, test = X_tst_boston, y = y_trn_boston, k = 5)
@@ -57,14 +57,14 @@ pred_100 = knn.reg(train = X_trn_boston, test = X_tst_boston, y = y_trn_boston, 
 pred_250 = knn.reg(train = X_trn_boston, test = X_tst_boston, y = y_trn_boston, k = 250)
 ```
 
-# Define RMSE function
+### Define RMSE function
 ```{r}
 rmse = function(actual, predicted) {
   sqrt(mean((actual - predicted) ^ 2))
 }
 ```
 
-# define helper function for getting knn.reg predictions
+### Define a helper function for getting knn.reg predictions
 ```{r}
 make_knn_pred = function(k = 1, training, predicting) {
   pred = FNN::knn.reg(train = training[, -c("player_ID","wage_eur")],
@@ -76,14 +76,14 @@ make_knn_pred = function(k = 1, training, predicting) {
 
 ```
 
-# Define values of K 
+### Define values of K 
 We tried out a couple of values of k (the number of neighbors) to get an idea for which ballpark we should be looking. 
 ```{r}
 # define values of k to evaluate
 k = c(1, 5, 10, 25, 50, 250)
 ```
 
-# Get RMSE's
+### Get RMSE's
 With the code below we evaluated the RMSEs with the different values of K we tried before. 
 ```{r}
 # get requested test RMSEs
@@ -98,8 +98,8 @@ best_k = k[which.min(knn_tst_rmse)]
 fit_status = ifelse(k < best_k, "Over", ifelse(k == best_k, "Best", "Under"))
 ```
 
-# summarize results
-This chunk tells us that the 
+### Summarize Results
+This chunk tells us that the range of optimal number of neighbours is likely between 1 and 25. Therefore, we decided to focus on this range for the next section, where we attempted to find the optimal number of neighbors. 
 ```{r}
 knn_results = data.frame(
   k,
@@ -112,7 +112,7 @@ colnames(knn_results) = c("k", "Test RMSE", "Fit?")
 knitr::kable(knn_results, escape = FALSE, booktabs = TRUE)
 ```
 
-#Loop over seeds
+### Looping over Seeds
 What the next chunk does is repeatedly run k-nearest neighbor, using a random seed from between 1-2500. In total KNN 150 times, to find out what the most commonly chosen number of neighbors is. Please note that this does take a while, depending on your computational power. 
 ```{r}
 best_k_list <- matrix(NA, nrow=2, ncol=1000)
@@ -143,6 +143,7 @@ for (seed_value in sample(1:2500,size=150)){
 print(round(100*(column_indicator / 150.0),2))
 }
 ```
+### Histogram
 The following histogram shows the amount of neighbors most commonly chosen. Each seed makes a different 80/20 split, and therefore the training data is different for each seed. This results in different amounts of nearest neighbors, and shows that the most chosen number of neighbors is 4. 
 ```{r}
 hist(best_k_list[1,], breaks=1:25)
