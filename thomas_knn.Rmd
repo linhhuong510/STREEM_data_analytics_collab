@@ -152,6 +152,13 @@ summary(best_k_list[1,])
 ```
 We then ran a regression using the complete training data, in order to train the data with as many observations as possible. We used a seed that had given as optimal number of neighbors k=4. We then predicted the wages using the test dataset, and submitted the result to kaggle.
 ```{r}
-SUBMISSION STUFF & SEED USED
+set.seed(471)
+pred_4 = FNN::knn.reg(train = DT[, -c("player_ID","wage_eur")], 
+                      test = test_submission[, -c("player_ID")], 
+                      y = DT$wage_eur, k = 4)$pred
+
+#sample_submission <- fread("https://www.dropbox.com/s/cap0jhc8uxv5u26/sampleSubmission.csv?dl=1")
+submit <- data.table(Id = test_submission$player_ID, Predicted = pred_4)
+fwrite(submit, "./2020_02_25-Thomas_submit_Knn_4_S471.csv")
 ```
 Unfortunately, this gave an score of 11857. This, although better than the OLS benchmark, performed worse than several other machine learning methods we used. Additionally, before fine-tuning (using the different seeds) we had attempted to run the KNN with 5 neighbors and 13. These numbers of neighbors were chosen based on preliminary indications using a smaller loop. These actually performed better than on the test dataset than our optimized model using 4 neighbors. This is a strikingly different result than the paper by AUTHORS. However, it may be in part due to differences in data as well as a different method for judging the effectiveness of the methods. 
