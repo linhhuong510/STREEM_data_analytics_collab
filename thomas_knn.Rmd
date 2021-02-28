@@ -7,7 +7,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## KNN
+## k-NN
 Yaldo and Shamir (2017) wrote a paper titled 'Computational Estimation of Football Player Wages', evaluating the best machine learning method for predicting football player wages. They used data and variables that are quite similar to the ones we have available, and therefore we took a look at the methods they used. The method that performs the best throughout is k-Nearest Neighbor (k-NN), which predicts based on 'neighbors' that are very similar to it. Therefore, we decided to attempt to run this machine learning method. 
 
 ### Load Packages
@@ -113,7 +113,7 @@ knitr::kable(knn_results, escape = FALSE, booktabs = TRUE)
 ```
 
 ### Looping over Seeds
-What the next chunk does is repeatedly run k-nearest neighbor, using a random seed from between 1-2500. In total KNN 150 times, to find out what the most commonly chosen number of neighbors is. Please note that this does take a while, depending on your computational power. 
+What the next chunk does is repeatedly run k-nearest neighbor, using a random seed from between 1-2500. In total we ran k-NN 150 times, to find out what the most commonly chosen number of neighbors is. Please note that this does take a while, depending on your computational power. 
 ```{r}
 best_k_list <- matrix(NA, nrow=2, ncol=1000)
 
@@ -161,4 +161,7 @@ pred_4 = FNN::knn.reg(train = DT[, -c("player_ID","wage_eur")],
 submit <- data.table(Id = test_submission$player_ID, Predicted = pred_4)
 fwrite(submit, "./2020_02_25-Thomas_submit_Knn_4_S471.csv")
 ```
-Unfortunately, this gave an score of 11857. This, although better than the OLS benchmark, performed worse than several other machine learning methods we used. Additionally, before fine-tuning (using the different seeds) we had attempted to run the KNN with 5 neighbors and 13. These numbers of neighbors were chosen based on preliminary indications using a smaller loop. These actually performed better than on the test dataset than our optimized model using 4 neighbors. This is a strikingly different result than the paper by AUTHORS. However, it may be in part due to differences in data as well as a different method for judging the effectiveness of the methods. 
+## Concluding k-NN
+Unfortunately, this gave an score of 11857. This, although better than the OLS benchmark, performed worse than several other machine learning methods we used. Additionally, before fine-tuning (using the different seeds) we had attempted to run the k-NN with 5 neighbors and 13. These numbers of neighbors were chosen based on preliminary indications using a smaller loop. These actually performed better than on the test dataset than our optimized model using 4 neighbors. This is a strikingly different result than the paper by Yaldo and Shamir (2017). However, it may be in part due to differences in data as well as a different method for judging the effectiveness of the methods. 
+
+Additionally, there are several reasons why k-NN may not be the optimal machine-learning dataset for this method. First of all, finding the optimal number of neighbors is hard. k-NN also suffers from the curse of dimensionality. As the number of variables grows, the effectiveness of k-NN decreases. It also struggles to deal with outliers, which our data has as we have shows in the descriptive statistics section. The reason it is sensitive to outliers is because it predicts based on the values closest to it, and outlier only have neighbors that are relatively far away. 
