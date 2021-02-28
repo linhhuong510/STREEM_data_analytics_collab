@@ -6,8 +6,8 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
-## k-NN
+k-NN
+======
 Yaldo and Shamir (2017) wrote a paper titled 'Computational Estimation of Football Player Wages', evaluating the best machine learning method for predicting football player wages. They used data and variables that are quite similar to the ones we have available, and therefore we took a look at the methods they used. The method that performs the best throughout is k-Nearest Neighbor (k-NN), which predicts based on 'neighbors' that are very similar to it. Therefore, we decided to attempt to run this machine learning method. 
 
 ### Load Packages
